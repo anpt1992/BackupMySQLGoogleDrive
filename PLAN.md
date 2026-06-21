@@ -60,36 +60,36 @@ BackupMySQLGoogleDrive/
 - [x] **T1.3** Bind config in `Program.cs` via Generic Host (`Host.CreateApplicationBuilder`), add user-secrets + env-var providers, register `IOptions<BackupOptions>` with validation (fail fast on missing required values).
 
 ### Phase 2 — MySQL dump
-- [ ] **T2.1** `MySqlDumpService.Dump()` — rework the old commented dump code into a service using `MySqlBackup.NET`.
-- [ ] **T2.2** Output to `TempDirectory` with timestamped name: `{prefix}_{yyyy-MM-dd_HHmm}.sql`. Return the file path.
-- [ ] **T2.3** Validate connection + surface a clear error if the DB is unreachable.
+- [x] **T2.1** `MySqlDumpService.Dump()` — rework the old commented dump code into a service using `MySqlBackup.NET`.
+- [x] **T2.2** Output to `TempDirectory` with timestamped name: `{prefix}_{yyyy-MM-dd_HHmm}.sql`. Return the file path.
+- [x] **T2.3** Validate connection + surface a clear error if the DB is unreachable.
 
 ### Phase 3 — Compression
-- [ ] **T3.1** `CompressionService.GzipFile(path)` → `{path}.gz` using `System.IO.Compression.GZipStream`.
-- [ ] **T3.2** Delete the raw `.sql` after successful compression. Skip entirely if `Backup.Compress = false`.
+- [x] **T3.1** `CompressionService.GzipFile(path)` → `{path}.gz` using `System.IO.Compression.GZipStream`.
+- [x] **T3.2** Delete the raw `.sql` after successful compression. Skip entirely if `Backup.Compress = false`.
 
 ### Phase 4 — Google Drive upload
-- [ ] **T4.1** `GoogleDriveService` — move auth out of `Program.cs`; use `DriveService.Scope.DriveFile` only and drop the dead `Scopes` field.
-- [ ] **T4.2** `Upload(filePath)` — set `body.Parents = [FolderId]`, `SupportsAllDrives = true`. Use **resumable upload** and check `request.GetProgress().Status` for success/failure.
-- [ ] **T4.3** Add simple retry (e.g. 3 attempts w/ backoff) on transient upload errors.
+- [x] **T4.1** `GoogleDriveService` — move auth out of `Program.cs`; use `DriveService.Scope.DriveFile` only and drop the dead `Scopes` field.
+- [x] **T4.2** `Upload(filePath)` — set `body.Parents = [FolderId]`, `SupportsAllDrives = true`. Use **resumable upload** and check `request.GetProgress().Status` for success/failure.
+- [x] **T4.3** Add simple retry (e.g. 3 attempts w/ backoff) on transient upload errors.
 
 ### Phase 5 — Rotation
-- [ ] **T5.1** `GoogleDriveService.ListBackups(folderId, prefix)` — query files in folder matching the name pattern, ordered by created time.
-- [ ] **T5.2** `RotationService.Apply()` — compute deletions from `KeepLastN` and `MaxAgeDays`; call `Files.Delete` for each. Log every deletion. No-op if both policies null.
+- [x] **T5.1** `GoogleDriveService.ListBackups(folderId, prefix)` — query files in folder matching the name pattern, ordered by created time.
+- [x] **T5.2** `RotationService.Apply()` — compute deletions from `KeepLastN` and `MaxAgeDays`; call `Files.Delete` for each. Log every deletion. No-op if both policies null.
 
 ### Phase 6 — Notifications
-- [ ] **T6.1** `NotificationService.Send(success, summary)` — POST JSON to `WebhookUrl` via `IHttpClientFactory`. Body shaped for Discord/Slack (`content`/`text`).
-- [ ] **T6.2** Always notify on failure; notify on success only if `NotifyOnSuccess = true`. Webhook failure must not crash the run (log + continue).
+- [x] **T6.1** `NotificationService.Send(success, summary)` — POST JSON to `WebhookUrl` via `IHttpClientFactory`. Body shaped for Discord/Slack (`content`/`text`).
+- [x] **T6.2** Always notify on failure; notify on success only if `NotifyOnSuccess = true`. Webhook failure must not crash the run (log + continue).
 
 ### Phase 7 — Orchestration & robustness
-- [ ] **T7.1** `BackupRunner.RunAsync()` — sequence: dump → compress → upload → rotate → notify. Structured `ILogger` at each step.
-- [ ] **T7.2** `try/finally` to delete local temp files (`.sql`/`.sql.gz`) regardless of outcome.
-- [ ] **T7.3** Return process exit code: `0` success, non-zero on failure (Task Scheduler alarming). Remove the old `Console.Read()` pause.
-- [ ] **T7.4** Catch-all at top level → send failure webhook + log full exception.
+- [x] **T7.1** `BackupRunner.RunAsync()` — sequence: dump → compress → upload → rotate → notify. Structured `ILogger` at each step.
+- [x] **T7.2** `try/finally` to delete local temp files (`.sql`/`.sql.gz`) regardless of outcome.
+- [x] **T7.3** Return process exit code: `0` success, non-zero on failure (Task Scheduler alarming). Remove the old `Console.Read()` pause.
+- [x] **T7.4** Catch-all at top level → send failure webhook + log full exception.
 
 ### Phase 8 — Docs & scheduling
-- [ ] **T8.1** `README.md`: setup (OAuth client creation, first-run consent), config reference, user-secrets commands.
-- [ ] **T8.2** Document Windows Task Scheduler setup (daily trigger, run-whether-logged-in, working directory) — optionally include a `.xml` task template or `schtasks` command.
+- [x] **T8.1** `README.md`: setup (OAuth client creation, first-run consent), config reference, user-secrets commands.
+- [x] **T8.2** Document Windows Task Scheduler setup (daily trigger, run-whether-logged-in, working directory) — optionally include a `.xml` task template or `schtasks` command.
 
 ---
 

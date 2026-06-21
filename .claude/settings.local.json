@@ -9,7 +9,9 @@
       "Bash(dotnet sln *)",
       "Bash(dotnet test *)",
       "Bash(pwsh -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/enforce-tests.ps1)",
-      "Bash(echo \"EXIT CODE: $?\")"
+      "Bash(echo \"EXIT CODE: $?\")",
+      "PowerShell(dotnet test 2>&1)",
+      "PowerShell(dotnet build 2>&1)"
     ]
   }
 }

@@ -1,7 +1,10 @@
+using BackupMySQLGoogleDrive;
 using BackupMySQLGoogleDrive.Config;
+using BackupMySQLGoogleDrive.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -13,12 +16,20 @@ var options = builder.Configuration.Get<BackupOptions>() ?? new BackupOptions();
 Validate(options);
 
 builder.Services.AddSingleton<IOptions<BackupOptions>>(Options.Create(options));
+builder.Services.AddSingleton(TimeProvider.System);
+
+builder.Services.AddSingleton<IMySqlExporter, MySqlExporter>();
+builder.Services.AddSingleton<IMySqlDumpService, MySqlDumpService>();
+builder.Services.AddSingleton<ICompressionService, CompressionService>();
+builder.Services.AddSingleton<IGoogleDriveService, GoogleDriveService>();
+builder.Services.AddSingleton<IRotationService, RotationService>();
+builder.Services.AddHttpClient<INotificationService, NotificationService>();
+builder.Services.AddSingleton<BackupRunner>();
 
 using var host = builder.Build();
-await host.StartAsync();
-await host.StopAsync();
 
-return 0;
+var runner = host.Services.GetRequiredService<BackupRunner>();
+return await runner.RunAsync();
 
 static void Validate(BackupOptions options)
 {
@@ -51,3 +62,6 @@ static string Require(string? value, string path)
 
     return value.Trim();
 }
+
+// Exposed so the test project and AddUserSecrets<Program>() can reference the entry assembly.
+public partial class Program;
