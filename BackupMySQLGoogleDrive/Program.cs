@@ -1,114 +1,53 @@
-﻿using Google.Apis.Auth.OAuth2;
-using Google.Apis.Drive.v3;
-using Google.Apis.Services;
-using Google.Apis.Util.Store;
-using HeyRed.Mime;
-using MySql.Data.MySqlClient;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading;
+using BackupMySQLGoogleDrive.Config;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
-namespace BackupMySQLGoogleDrive
+var builder = Host.CreateApplicationBuilder(args);
+
+builder.Configuration.AddUserSecrets<Program>(optional: true);
+builder.Configuration.AddEnvironmentVariables();
+
+var options = builder.Configuration.Get<BackupOptions>() ?? new BackupOptions();
+Validate(options);
+
+builder.Services.AddSingleton<IOptions<BackupOptions>>(Options.Create(options));
+
+using var host = builder.Build();
+await host.StartAsync();
+await host.StopAsync();
+
+return 0;
+
+static void Validate(BackupOptions options)
 {
-    class Program
+    options.MySql.ConnectionString = Require(options.MySql.ConnectionString, "MySql:ConnectionString");
+    options.MySql.DatabaseName = Require(options.MySql.DatabaseName, "MySql:DatabaseName");
+    options.GoogleDrive.ClientId = Require(options.GoogleDrive.ClientId, "GoogleDrive:ClientId");
+    options.GoogleDrive.ClientSecret = Require(options.GoogleDrive.ClientSecret, "GoogleDrive:ClientSecret");
+    options.GoogleDrive.FolderId = Require(options.GoogleDrive.FolderId, "GoogleDrive:FolderId");
+    options.GoogleDrive.ApplicationName = Require(options.GoogleDrive.ApplicationName, "GoogleDrive:ApplicationName");
+    options.Backup.TempDirectory = Require(options.Backup.TempDirectory, "Backup:TempDirectory");
+    options.Backup.FileNamePrefix = Require(options.Backup.FileNamePrefix, "Backup:FileNamePrefix");
+
+    if (options.Rotation.KeepLastN is < 0)
     {
-        static string[] Scopes = { DriveService.Scope.DriveReadonly };
-        static string ApplicationName = "Backup MySQL To Google Drive";
-        static void Main(string[] args)
-        {
-            //string constring = "server=localhost;user=root;pwd=;database=phr;";
-
-            //// Important Additional Connection Options
-            //constring += "charset=utf8;convertzerodatetime=true;";
-
-            //string filePath = "D:\\backup.sql";
-
-            //using (MySqlConnection conn = new MySqlConnection(constring))
-            //{
-            //    using (MySqlCommand cmd = new MySqlCommand())
-            //    {
-            //        using (MySqlBackup mb = new MySqlBackup(cmd))
-            //        {
-            //            cmd.Connection = conn;
-            //            conn.Open();
-            //            mb.ExportToFile(filePath);
-            //            conn.Close();
-            //        }
-            //    }
-            //}
-
-
-
-            //google api
-            UserCredential credential;
-            string[] scopes = new string[] { DriveService.Scope.Drive,
-                             DriveService.Scope.DriveFile};
-            var client = new ClientSecrets
-            {
-                ClientId = "xxxx",
-                ClientSecret = "xxx"
-            };
-
-            //using (var stream = new FileStream("credentials.json", FileMode.Open, FileAccess.Read))
-            //{
-            // The file token.json stores the user's access and refresh tokens, and is created
-            // automatically when the authorization flow completes for the first time.
-            string credPath = "token.json";
-            credential = GoogleWebAuthorizationBroker.AuthorizeAsync(client, scopes, Environment.UserName, CancellationToken.None, new FileDataStore("MyAppsToken")).Result;
-            Console.WriteLine("Credential file saved to: " + credPath);
-            //}
-
-            // Create Drive API service.
-            var service = new DriveService(new BaseClientService.Initializer()
-            {
-                HttpClientInitializer = credential,
-                ApplicationName = ApplicationName,
-            });
-
-            service.HttpClient.Timeout = TimeSpan.FromMinutes(100);
-            //Long Operations like file uploads might timeout. 100 is just precautionary value, can be set to any reasonable value depending on what you use your service for  
-
-            // team drive root https://drive.google.com/drive/folders/0AAE83zjNwK-GUk9PVA   
-
-            var respocne = uploadFile(service, "D:\\backup.sql", "data phuchaireal.com");
-            Console.Read();
-
-
-
-        }
-
-
-        static Google.Apis.Drive.v3.Data.File uploadFile(DriveService _service, string _uploadFile, string _descrp)
-        {
-            if (System.IO.File.Exists(_uploadFile))
-            {
-                Google.Apis.Drive.v3.Data.File body = new Google.Apis.Drive.v3.Data.File();
-                body.Name = System.IO.Path.GetFileName(_uploadFile);
-                body.Description = _descrp;
-                body.MimeType = MimeTypesMap.GetMimeType(_uploadFile);
-                // body.Parents = new List<string> { _parent };// UN comment if you want to upload to a folder(ID of parent folder need to be send as paramter in above method)
-                byte[] byteArray = System.IO.File.ReadAllBytes(_uploadFile);
-                System.IO.MemoryStream stream = new System.IO.MemoryStream(byteArray);
-                try
-                {
-                    FilesResource.CreateMediaUpload request = _service.Files.Create(body, stream, MimeTypesMap.GetMimeType(_uploadFile));
-                    request.SupportsTeamDrives = true;
-                    request.Upload();
-                    return request.ResponseBody;
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine("error:" + e.Message);
-                    return null;
-                }
-            }
-            else
-            {
-                Console.WriteLine("The file does not exist.");
-                return null;
-            }
-        }
-
+        throw new InvalidOperationException("Configuration value 'Rotation:KeepLastN' cannot be negative.");
     }
+
+    if (options.Rotation.MaxAgeDays is < 0)
+    {
+        throw new InvalidOperationException("Configuration value 'Rotation:MaxAgeDays' cannot be negative.");
+    }
+}
+
+static string Require(string? value, string path)
+{
+    if (string.IsNullOrWhiteSpace(value))
+    {
+        throw new InvalidOperationException($"Missing required configuration value: '{path}'.");
+    }
+
+    return value.Trim();
 }

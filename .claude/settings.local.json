@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet --version)",
+      "Bash(dotnet --list-sdks)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet new *)",
+      "Bash(dotnet add *)",
+      "Bash(dotnet sln *)",
+      "Bash(dotnet test *)",
+      "Bash(pwsh -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/enforce-tests.ps1)",
+      "Bash(echo \"EXIT CODE: $?\")"
+    ]
+  }
+}

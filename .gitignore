@@ -28,5 +28,9 @@ obj/
 _ReSharper*/
 [Tt]est[Rr]esult*
 .vs/
+BackupMySQLGoogleDrive/appsettings.json
+BackupMySQLGoogleDrive/credentials.json
+BackupMySQLGoogleDrive/token.json
+BackupMySQLGoogleDrive/MyAppsToken/
 #Nuget packages folder
 packages/
